@@ -13,29 +13,28 @@ export default function ExcelUploader({ adminPassword }: { adminPassword: string
   const [message, setMessage] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  async function fetchSheets(f: File) {
-    const form = new FormData()
-    form.append('file', f)
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'x-admin-password': adminPassword },
-      body: form,
-    })
-    const json = await res.json() as { sheets?: string[]; error?: string }
-    if (!res.ok || json.error) throw new Error(json.error ?? '上傳失敗')
-    return json.sheets ?? []
-  }
-
   async function handleFile(f: File) {
     setFile(f)
     setStep('uploading')
     try {
-      const sheetList = await fetchSheets(f)
-      if (sheetList.length === 1) {
-        await uploadToSheet(f, sheetList[0])
+      const form = new FormData()
+      form.append('file', f)
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'x-admin-password': adminPassword },
+        body: form,
+      })
+      const json = await res.json() as { success?: boolean; campaigns?: number; sheets?: string[]; error?: string; lastUpdated?: string }
+      if (!res.ok || json.error) throw new Error(json.error ?? '上傳失敗')
+
+      if (json.success) {
+        // Single-sheet file: already parsed and saved in one request
+        setMessage(`✓ 成功匯入 ${json.campaigns} 個活動項目`)
+        setStep('done')
       } else {
-        setSheets(sheetList)
-        setSelectedSheet(sheetList[0])
+        // Multiple sheets: let user pick
+        setSheets(json.sheets ?? [])
+        setSelectedSheet(json.sheets?.[0] ?? '')
         setStep('selecting-sheet')
       }
     } catch (e) {
@@ -113,7 +112,7 @@ export default function ExcelUploader({ adminPassword }: { adminPassword: string
       {step === 'uploading' && (
         <div className="text-center py-12 text-gray-500">
           <div className="animate-spin text-3xl mb-3">⟳</div>
-          <p>讀取檔案中...</p>
+          <p>上傳並解析中，請稍候…</p>
           {file && <p className="text-sm text-gray-400 mt-1">{file.name}</p>}
         </div>
       )}

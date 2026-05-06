@@ -19,9 +19,19 @@ export async function POST(req: NextRequest) {
 
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  // If no sheet specified, return available sheets
+  // If no sheet specified, auto-pick single sheet or return list for user to choose
   if (!sheetName) {
     const sheets = getSheetNames(buffer)
+    if (sheets.length === 1) {
+      // Only one sheet — parse and save in this same request (avoids a second upload)
+      const data = parseETFSheet(buffer, sheets[0])
+      await saveScheduleData(data)
+      return NextResponse.json({
+        success: true,
+        campaigns: data.campaigns.length,
+        lastUpdated: data.lastUpdated,
+      })
+    }
     return NextResponse.json({ sheets })
   }
 
