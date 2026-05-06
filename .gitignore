@@ -42,3 +42,5 @@ next-env.d.ts
 
 # local schedule data
 /data/
+
+.vercel
