@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ETF 行銷排程 — Design Preview</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; }
+  .sticky-col { position: sticky; z-index: 10; background: inherit; }
+  .sticky-type { left: 0; }
+  .sticky-media { left: 90px; }
+  .sticky-assign { left: 210px; }
+  th.sticky-type, th.sticky-media, th.sticky-assign { z-index: 20; background: #f9fafb; }
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen antialiased">
+
+<!-- ── Header / Nav ── -->
+<header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-20">
+  <div class="max-w-screen-xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="text-lg font-bold text-gray-900">00991A</span>
+      <span class="text-gray-400 hidden sm:inline text-sm">行銷排程</span>
+    </div>
+    <nav class="flex items-center gap-1">
+      <a href="#" class="px-3 py-2 text-sm rounded-lg bg-blue-50 text-blue-700 font-medium">本週排程</a>
+      <a href="#" class="px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-100">完整月曆</a>
+      <a href="#" class="px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-100">上傳 Excel</a>
+      <a href="#" class="ml-2 px-3 py-2 text-sm rounded-lg text-blue-600 border border-blue-200 hover:bg-blue-50">匯出</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ── Main ── -->
+<main class="max-w-screen-xl mx-auto px-4 py-6">
+  <div class="space-y-4">
+
+    <!-- Page title -->
+    <div>
+      <h1 class="text-xl font-bold text-gray-900">行銷排程</h1>
+      <p class="text-sm text-gray-500 mt-0.5">2026年5月6日 星期三</p>
+    </div>
+
+    <!-- ── Controls ── -->
+    <div class="flex flex-wrap items-center gap-3">
+
+      <!-- View toggle -->
+      <div class="flex bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        <button class="px-4 py-2 text-sm font-medium bg-blue-600 text-white">週視圖</button>
+        <button class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">月視圖</button>
+      </div>
+
+      <!-- Week nav -->
+      <div class="flex items-center gap-0.5 bg-white border border-gray-200 rounded-lg shadow-sm">
+        <button class="px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-l-lg">‹ 上週</button>
+        <div class="px-3 py-2 text-sm font-medium text-gray-800 border-x border-gray-200">
+          5/4 – 5/10
+          <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">本週</span>
+        </div>
+        <button class="px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-r-lg">下週 ›</button>
+      </div>
+
+      <!-- Right controls -->
+      <div class="ml-auto flex items-center gap-3">
+        <span class="text-xs text-gray-400">最後更新 5/6 09:47</span>
+        <a href="#" class="text-xs text-blue-600 border border-blue-200 px-2.5 py-1.5 rounded-lg hover:bg-blue-50">更新 Excel</a>
+        <a href="#" class="text-xs text-gray-600 border border-gray-200 px-2.5 py-1.5 rounded-lg hover:bg-gray-50">匯出</a>
+      </div>
+    </div>
+
+    <!-- ── Summary Bar ── -->
+    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">本週摘要 · 5/4 – 5/10</p>
+      <div class="flex flex-wrap gap-x-6 gap-y-2.5">
+
+        <div class="flex items-start gap-2">
+          <span class="shrink-0 text-xs px-2 py-0.5 rounded-full font-medium bg-sky-100 text-sky-800 ring-1 ring-sky-300">新聞報導</span>
+          <div class="text-sm text-gray-700 flex flex-wrap gap-x-2">
+            <span>PR操作 <span class="font-semibold text-gray-900">×1</span></span>
+            <span>新聞置入+新聞聯播網 <span class="font-semibold text-gray-900">×1</span></span>
+            <span class="text-gray-400 text-xs">（共 2 則）</span>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2">
+          <span class="shrink-0 text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 ring-1 ring-amber-300">數位廣告</span>
+          <div class="text-sm text-gray-700 flex flex-wrap gap-x-2">
+            <span>LINE LAP <span class="font-semibold text-gray-900">×1</span></span>
+            <span>圖文(FB/IG) <span class="font-semibold text-gray-900">×1</span></span>
+            <span>影音(FB/IG) <span class="font-semibold text-gray-900">×1</span></span>
+            <span>YT <span class="font-semibold text-gray-900">×1</span></span>
+            <span class="text-gray-400 text-xs">（共 4 則）</span>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2">
+          <span class="shrink-0 text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-800 ring-1 ring-orange-300">KOL</span>
+          <div class="text-sm text-gray-700">
+            <span>KOL合作 <span class="font-semibold text-gray-900">×1</span></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Schedule Grid ── -->
+    <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+      <table class="text-xs border-collapse" style="table-layout:fixed; min-width:1040px">
+        <colgroup>
+          <col style="width:90px" />  <!-- 類型 -->
+          <col style="width:120px" /> <!-- 媒體 -->
+          <col style="width:60px" />  <!-- 分工 -->
+          <!-- 7 day columns @ 110px -->
+          <col style="width:110px" /><col style="width:110px" /><col style="width:110px" />
+          <col style="width:110px" /><col style="width:110px" /><col style="width:110px" />
+          <col style="width:110px" />
+        </colgroup>
+
+        <!-- Header -->
+        <thead>
+          <tr class="bg-gray-50 border-b-2 border-gray-200">
+            <th class="sticky-col sticky-type px-3 py-2.5 text-left font-semibold text-gray-600 border-r border-gray-200">類型</th>
+            <th class="sticky-col sticky-media px-3 py-2.5 text-left font-semibold text-gray-600 border-r border-gray-200">媒體 / 渠道</th>
+            <th class="sticky-col sticky-assign px-2 py-2.5 text-left font-medium text-gray-500 border-r border-gray-200">分工</th>
+            <!-- Mon 5/4 -->
+            <th class="px-1 py-1.5 text-center font-medium border-r border-gray-200 text-gray-600">
+              <div>5/4</div><div class="text-gray-400 font-normal text-[10px]">一</div>
+            </th>
+            <!-- Tue 5/5 -->
+            <th class="px-1 py-1.5 text-center font-medium border-r border-gray-200 text-gray-600">
+              <div>5/5</div><div class="text-gray-400 font-normal text-[10px]">二</div>
+            </th>
+            <!-- Wed 5/6 TODAY -->
+            <th class="px-1 py-1.5 text-center font-medium border-r border-gray-200 bg-blue-100 text-blue-700">
+              <div>5/6</div><div class="text-[10px] font-normal">三</div>
+            </th>
+            <!-- Thu 5/7 -->
+            <th class="px-1 py-1.5 text-center font-medium border-r border-gray-200 text-gray-600">
+              <div>5/7</div><div class="text-gray-400 font-normal text-[10px]">四</div>
+            </th>
+            <!-- Fri 5/8 -->
+            <th class="px-1 py-1.5 text-center font-medium border-r border-gray-200 text-gray-600">
+              <div>5/8</div><div class="text-gray-400 font-normal text-[10px]">五</div>
+            </th>
+            <!-- Sat 5/9 -->
+            <th class="px-1 py-1.5 text-center font-medium border-r border-gray-200 bg-gray-100 text-gray-400">
+              <div>5/9</div><div class="text-[10px] font-normal">六</div>
+            </th>
+            <!-- Sun 5/10 -->
+            <th class="px-1 py-1.5 text-center font-medium border-r border-gray-200 bg-gray-100 text-gray-400">
+              <div>5/10</div><div class="text-[10px] font-normal">日</div>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <!-- Row 1: 製作 / 影片製作 — 無本週活動 (dimmed) -->
+          <tr class="border-b border-gray-100 bg-white opacity-50">
+            <td class="sticky-col sticky-type px-2 py-2 border-r border-gray-200">
+              <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-800 ring-1 ring-violet-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>製作
+              </span>
+            </td>
+            <td class="sticky-col sticky-media px-3 py-2 border-r border-gray-200">
+              <div class="font-medium text-gray-700 truncate">影片製作</div>
+            </td>
+            <td class="sticky-col sticky-assign px-2 py-2 text-gray-500 border-r border-gray-200">
+              <div class="text-[10px] truncate">欣儀</div>
+            </td>
+            <td class="border-r border-gray-100 h-10"></td>
+            <td class="border-r border-gray-100 h-10 bg-blue-50/30"></td>
+            <td class="border-r border-gray-100 h-10 bg-blue-50/30"></td>
+            <td class="border-r border-gray-100 h-10"></td>
+            <td class="border-r border-gray-100 h-10"></td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+          </tr>
+
+          <!-- Row 2: 新聞報導 / PR操作 — 本週 5/4-5/8 (spans Mon-Fri) -->
+          <tr class="border-b border-gray-100 bg-gray-50/50">
+            <td class="sticky-col sticky-type px-2 py-2 border-r border-gray-200">
+              <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-sky-100 text-sky-800 ring-1 ring-sky-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>新聞報導
+              </span>
+            </td>
+            <td class="sticky-col sticky-media px-3 py-2 border-r border-gray-200">
+              <div class="font-medium text-gray-700 truncate">PR操作</div>
+              <div class="text-gray-400 text-[10px] mt-0.5 truncate">媒體關係</div>
+            </td>
+            <td class="sticky-col sticky-assign px-2 py-2 text-gray-500 border-r border-gray-200">
+              <div class="text-[10px] truncate">又仁</div>
+            </td>
+            <!-- Mon-Fri span (5 cols) -->
+            <td colspan="5" class="border-r border-gray-100 px-1 py-1 align-middle">
+              <div class="rounded-md px-2 py-1.5 min-h-[32px] leading-snug text-center bg-sky-100 border border-sky-300 text-sky-900">
+                <div class="font-medium">持續追蹤操作</div>
+              </div>
+            </td>
+            <!-- Sat -->
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+            <!-- Sun -->
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+          </tr>
+
+          <!-- Row 3: 新聞報導 / 新聞置入+新聞聯播網 -->
+          <tr class="border-b border-gray-100 bg-white">
+            <td class="sticky-col sticky-type px-2 py-2 border-r border-gray-200">
+              <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-sky-100 text-sky-800 ring-1 ring-sky-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>新聞報導
+              </span>
+            </td>
+            <td class="sticky-col sticky-media px-3 py-2 border-r border-gray-200">
+              <div class="font-medium text-gray-700 truncate">新聞置入+新聞聯播網</div>
+            </td>
+            <td class="sticky-col sticky-assign px-2 py-2 text-gray-500 border-r border-gray-200">
+              <div class="text-[10px] truncate">基富/曉昀</div>
+            </td>
+            <!-- Mon: empty -->
+            <td class="border-r border-gray-100 h-10"></td>
+            <!-- Tue-Fri span (4 cols) -->
+            <td colspan="4" class="border-r border-gray-100 px-1 py-1 align-middle">
+              <div class="rounded-md px-2 py-1.5 min-h-[32px] leading-snug text-center bg-sky-100 border border-sky-300 text-sky-900">
+                <div class="font-medium">3</div>
+              </div>
+            </td>
+            <!-- Sat -->
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+            <!-- Sun -->
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+          </tr>
+
+          <!-- Row 4: 數位廣告 / LINE LAP — single cells each day -->
+          <tr class="border-b border-gray-100 bg-gray-50/50">
+            <td class="sticky-col sticky-type px-2 py-2 border-r border-gray-200">
+              <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 ring-1 ring-amber-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>數位廣告
+              </span>
+            </td>
+            <td class="sticky-col sticky-media px-3 py-2 border-r border-gray-200">
+              <div class="font-medium text-gray-700">LINE LAP</div>
+            </td>
+            <td class="sticky-col sticky-assign px-2 py-2 text-gray-500 border-r border-gray-200">
+              <div class="text-[10px]">Juno</div>
+            </td>
+            <!-- Mon-Fri, each day same content "18W" -->
+            <td colspan="5" class="border-r border-gray-100 px-1 py-1 align-middle">
+              <div class="rounded-md px-2 py-1.5 min-h-[32px] leading-snug text-center bg-amber-100 border border-amber-300 text-amber-900">
+                <div class="font-medium">18W</div>
+              </div>
+            </td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+          </tr>
+
+          <!-- Row 5: 數位廣告 / 圖文(FB/IG) — spans whole week Mon-Sun -->
+          <tr class="border-b border-gray-100 bg-white">
+            <td class="sticky-col sticky-type px-2 py-2 border-r border-gray-200">
+              <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 ring-1 ring-amber-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>數位廣告
+              </span>
+            </td>
+            <td class="sticky-col sticky-media px-3 py-2 border-r border-gray-200">
+              <div class="font-medium text-gray-700">圖文(FB/IG)</div>
+            </td>
+            <td class="sticky-col sticky-assign px-2 py-2 text-gray-500 border-r border-gray-200">
+              <div class="text-[10px]">Juno</div>
+            </td>
+            <!-- Full week span (7 cols) -->
+            <td colspan="7" class="border-r border-gray-100 px-1 py-1 align-middle">
+              <div class="rounded-md px-2 py-1.5 min-h-[32px] leading-snug text-center bg-amber-100 border border-amber-300 text-amber-900">
+                <div class="font-medium">抬轎 多圖x1</div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 6: 數位廣告 / 影音(FB/IG) — spans Mon-Fri -->
+          <tr class="border-b border-gray-100 bg-gray-50/50">
+            <td class="sticky-col sticky-type px-2 py-2 border-r border-gray-200">
+              <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 ring-1 ring-amber-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>數位廣告
+              </span>
+            </td>
+            <td class="sticky-col sticky-media px-3 py-2 border-r border-gray-200">
+              <div class="font-medium text-gray-700">影音(FB/IG)</div>
+            </td>
+            <td class="sticky-col sticky-assign px-2 py-2 text-gray-500 border-r border-gray-200">
+              <div class="text-[10px]">Juno</div>
+            </td>
+            <td colspan="5" class="border-r border-gray-100 px-1 py-1 align-middle">
+              <div class="rounded-md px-2 py-1.5 min-h-[32px] leading-snug text-center bg-amber-100 border border-amber-300 text-amber-900">
+                <div class="font-medium whitespace-pre-line">既有素材 柏佑版 / 經理人版</div>
+              </div>
+            </td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+          </tr>
+
+          <!-- Row 7: 數位廣告 / YT -->
+          <tr class="border-b border-gray-100 bg-white">
+            <td class="sticky-col sticky-type px-2 py-2 border-r border-gray-200">
+              <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 ring-1 ring-amber-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>數位廣告
+              </span>
+            </td>
+            <td class="sticky-col sticky-media px-3 py-2 border-r border-gray-200">
+              <div class="font-medium text-gray-700">YT</div>
+              <div class="text-gray-400 text-[10px] mt-0.5">串流廣告</div>
+            </td>
+            <td class="sticky-col sticky-assign px-2 py-2 text-gray-500 border-r border-gray-200">
+              <div class="text-[10px]">Juno</div>
+            </td>
+            <td colspan="5" class="border-r border-gray-100 px-1 py-1 align-middle">
+              <div class="rounded-md px-2 py-1.5 min-h-[32px] leading-snug text-center bg-amber-100 border border-amber-300 text-amber-900">
+                <div class="font-medium">既有素材</div>
+              </div>
+            </td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+          </tr>
+
+          <!-- Row 8: KOL -->
+          <tr class="border-b border-gray-100 bg-gray-50/50">
+            <td class="sticky-col sticky-type px-2 py-2 border-r border-gray-200">
+              <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-800 ring-1 ring-orange-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>KOL
+              </span>
+            </td>
+            <td class="sticky-col sticky-media px-3 py-2 border-r border-gray-200">
+              <div class="font-medium text-gray-700">KOL合作</div>
+              <div class="text-gray-400 text-[10px] mt-0.5">Podcast / 社群</div>
+            </td>
+            <td class="sticky-col sticky-assign px-2 py-2 text-gray-500 border-r border-gray-200">
+              <div class="text-[10px]">欣儀</div>
+            </td>
+            <!-- Wed only -->
+            <td class="border-r border-gray-100 h-10"></td>
+            <td class="border-r border-gray-100 h-10"></td>
+            <td class="border-r border-gray-100 px-1 py-1 align-middle bg-blue-50/30">
+              <div class="rounded-md px-2 py-1.5 min-h-[32px] leading-snug bg-orange-100 border border-orange-300 text-orange-900">
+                <div class="font-medium">發文</div>
+              </div>
+            </td>
+            <td class="border-r border-gray-100 h-10"></td>
+            <td class="border-r border-gray-100 h-10"></td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+          </tr>
+
+          <!-- Row 9: 輿論 -->
+          <tr class="border-b border-gray-100 bg-white">
+            <td class="sticky-col sticky-type px-2 py-2 border-r border-gray-200">
+              <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-rose-100 text-rose-800 ring-1 ring-rose-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>輿論
+              </span>
+            </td>
+            <td class="sticky-col sticky-media px-3 py-2 border-r border-gray-200">
+              <div class="font-medium text-gray-700">輿論操作</div>
+              <div class="text-gray-400 text-[10px] mt-0.5">PTT / Dcard</div>
+            </td>
+            <td class="sticky-col sticky-assign px-2 py-2 text-gray-500 border-r border-gray-200">
+              <div class="text-[10px]">曉昀</div>
+            </td>
+            <!-- Mon-Fri span -->
+            <td colspan="5" class="border-r border-gray-100 px-1 py-1 align-middle">
+              <div class="rounded-md px-2 py-1.5 min-h-[32px] leading-snug text-center bg-rose-100 border border-rose-300 text-rose-900">
+                <div class="font-medium">持續監測回應</div>
+              </div>
+            </td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+            <td class="border-r border-gray-100 h-10 bg-gray-50"></td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Legend -->
+    <div class="flex flex-wrap gap-3 text-xs text-gray-500">
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-violet-400"></span>製作</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>新聞報導</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>數位廣告</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>KOL</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>輿論</span>
+      <span class="text-gray-400 ml-2">· 點擊格子可編輯（需設定密碼）</span>
+    </div>
+
+  </div>
+</main>
+
+</body>
+</html>
