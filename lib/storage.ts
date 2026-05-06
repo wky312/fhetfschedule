@@ -2,7 +2,11 @@ import fs from 'fs/promises'
 import path from 'path'
 import type { ScheduleData } from './types'
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'schedule.json')
+// On Vercel, process.cwd() is read-only; /tmp is the only writable dir.
+// Without Redis, data won't survive cold starts — configure Upstash for persistence.
+const DATA_FILE = process.env.VERCEL
+  ? '/tmp/schedule.json'
+  : path.join(process.cwd(), 'data', 'schedule.json')
 
 async function getRedis() {
   const url = process.env.UPSTASH_REDIS_REST_URL

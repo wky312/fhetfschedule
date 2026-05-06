@@ -45,21 +45,29 @@ export default function ExcelUploader({ adminPassword }: { adminPassword: string
 
   async function uploadToSheet(f: File, sheetName: string) {
     setStep('uploading')
-    const form = new FormData()
-    form.append('file', f)
-    form.append('sheetName', sheetName)
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'x-admin-password': adminPassword },
-      body: form,
-    })
-    const json = await res.json() as { success?: boolean; campaigns?: number; error?: string }
-    if (!res.ok || json.error) {
-      setMessage(json.error ?? '上傳失敗')
-      setStep('error')
-    } else {
+    try {
+      const form = new FormData()
+      form.append('file', f)
+      form.append('sheetName', sheetName)
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'x-admin-password': adminPassword },
+        body: form,
+      })
+      let json: { success?: boolean; campaigns?: number; error?: string }
+      try {
+        json = await res.json()
+      } catch {
+        throw new Error(`伺服器錯誤 (HTTP ${res.status})，請查看 Vercel 日誌`)
+      }
+      if (!res.ok || json.error) {
+        throw new Error(json.error ?? `上傳失敗 (HTTP ${res.status})`)
+      }
       setMessage(`✓ 成功匯入 ${json.campaigns} 個活動項目`)
       setStep('done')
+    } catch (e) {
+      setMessage((e as Error).message)
+      setStep('error')
     }
   }
 
