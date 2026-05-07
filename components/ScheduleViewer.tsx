@@ -206,7 +206,16 @@ export default function ScheduleViewer({
   }
   const [newCampaign, setNewCampaign] = useState<NewCampaignState | null>(null)
   const [saving, setSaving] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const today = new Date().toISOString().slice(0, 10)
+  const [selectedDay, setSelectedDay] = useState(today)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     fetch('/api/schedule')
@@ -302,6 +311,223 @@ export default function ScheduleViewer({
     })
     setSaving(false)
     setEditingCell(null)
+  }
+
+  // ── Mobile view ───────────────────────────────────────────────────────────
+  if (isMobile && data && data.campaigns.length > 0) {
+    const visibleDays = viewMode === 'week' ? getWeekDays(weekOffset) : getAllDatesInData(data.campaigns)
+
+    const eventsForDay = data.campaigns.flatMap((campaign) => {
+      const entry = campaign.scheduleEntries.find((e) => {
+        const end = e.endDate || e.date
+        return e.date <= selectedDay && end >= selectedDay
+      })
+      return entry ? [{ campaign, entry }] : []
+    })
+
+    function openDayAdd() {
+      setEditingCell({ campaignId: '', label: '', oldDate: '', startDate: selectedDay, endDate: selectedDay, content: '' })
+      setNewCampaign({ type: '數位廣告', media: '', placement: '', assignee: '', startDate: selectedDay, endDate: selectedDay, content: '' })
+    }
+
+    const dayFmt = new Date(selectedDay + 'T00:00:00').toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' })
+
+    return (
+      <div>
+        {/* Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          {/* View toggle */}
+          <div style={{ display: 'inline-flex', border: '1px solid #D7CBBC', borderRadius: 4, overflow: 'hidden', background: '#FFFAF3' }}>
+            {(['week', 'month'] as ViewMode[]).map((m, idx) => (
+              <button key={m} onClick={() => { setViewMode(m); if (m === 'week') { const d = getWeekDays(weekOffset); if (!d.includes(selectedDay)) setSelectedDay(d[0]) } }}
+                style={{ fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: 'pointer', background: viewMode === m ? '#2A2622' : 'transparent', color: viewMode === m ? '#FFF1E5' : '#4D4D4F', border: 'none', borderLeft: idx > 0 ? '1px solid #D7CBBC' : 'none' }}>
+                {m === 'week' ? '週視圖' : '月視圖'}
+              </button>
+            ))}
+          </div>
+
+          {/* Week nav */}
+          {viewMode === 'week' && (
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #D7CBBC', borderRadius: 4, overflow: 'hidden', background: '#FFFAF3' }}>
+              <button onClick={() => { const o = weekOffset - 1; setWeekOffset(o); setSelectedDay(getWeekDays(o)[0]) }}
+                style={{ padding: '7px 14px', fontSize: 15, color: '#4D4D4F', background: 'transparent', border: 'none', borderRight: '1px solid #D7CBBC', cursor: 'pointer', lineHeight: 1 }}>‹</button>
+              <span style={{ padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#2A2622', whiteSpace: 'nowrap' }}>
+                {fmtMD(visibleDays[0])} – {fmtMD(visibleDays[6])}
+              </span>
+              <button onClick={() => { const o = weekOffset + 1; setWeekOffset(o); setSelectedDay(getWeekDays(o)[0]) }}
+                style={{ padding: '7px 14px', fontSize: 15, color: '#4D4D4F', background: 'transparent', border: 'none', borderLeft: '1px solid #D7CBBC', cursor: 'pointer', lineHeight: 1 }}>›</button>
+            </div>
+          )}
+
+          <button onClick={() => setNewCampaign({ type: '數位廣告', media: '', placement: '', assignee: '', startDate: selectedDay, endDate: selectedDay, content: '' })}
+            style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 4, border: '1px solid #B08F6E', background: '#F8F1E6', color: '#5E4A36', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            ＋ 新增
+          </button>
+        </div>
+
+        {/* Day strip */}
+        <div style={{ display: 'flex', overflowX: 'auto', gap: 4, paddingBottom: 10, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+          {visibleDays.map((date) => {
+            const d = new Date(date + 'T00:00:00')
+            const isSelected = date === selectedDay
+            const isToday = date === today
+            const hasEv = data.campaigns.some((c) => c.scheduleEntries.some((e) => {
+              const end = e.endDate || e.date; return e.date <= date && end >= date
+            }))
+            const btnW = viewMode === 'week' ? 42 : 36
+            return (
+              <button key={date} onClick={() => setSelectedDay(date)} style={{
+                flexShrink: 0, width: btnW, padding: '7px 2px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: isSelected ? '#2A2622' : isToday ? '#FBEDED' : 'transparent',
+                color: isSelected ? '#FFF1E5' : isToday ? '#C00000' : '#4D4D4F',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+              }}>
+                <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{WEEKDAYS_EN[d.getDay()].slice(0, 1)}</span>
+                <span style={{ fontSize: viewMode === 'week' ? 17 : 14, fontWeight: 700, lineHeight: 1.1 }}>{d.getDate()}</span>
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: hasEv && !isSelected ? '#C00000' : 'transparent', display: 'block' }} />
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Selected day header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '12px 0 10px', paddingTop: 10, borderTop: '1px solid #E8DFD4' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#2A2622' }}>{dayFmt}</span>
+          <span style={{ fontSize: 12, color: '#B8B3AD' }}>{eventsForDay.length} 項排程</span>
+        </div>
+
+        {/* Event cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {eventsForDay.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: '#B8B3AD', fontSize: 13 }}>
+              <div style={{ marginBottom: 12 }}>這天沒有排程</div>
+              <button onClick={openDayAdd}
+                style={{ fontSize: 12, fontWeight: 500, padding: '7px 16px', borderRadius: 4, border: '1px solid #D7CBBC', background: '#FFFAF3', color: '#4D4D4F', cursor: 'pointer' }}>
+                ＋ 新增這天的排程
+              </button>
+            </div>
+          ) : (
+            eventsForDay.map(({ campaign, entry }) => {
+              const pal = getPalette(campaign.type)
+              return (
+                <div key={campaign.id}
+                  onClick={() => setEditingCell({ campaignId: campaign.id, label: `${campaign.media} · ${campaign.type.replace(/\s*\([^)]*\)/, '').trim()}`, oldDate: entry.date, startDate: entry.date, endDate: entry.endDate ?? entry.date, content: entry.content })}
+                  style={{ borderLeft: `3px solid ${pal.eventAccent}`, background: pal.eventBg, borderRadius: 8, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: pal.chipBg, color: pal.chipColor }}>
+                      {campaign.type.replace(/\s*\([^)]*\)/, '').trim()}
+                    </span>
+                    {campaign.assignee && <span style={{ fontSize: 11, color: '#7A7775' }}>{campaign.assignee}</span>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <MicoIcon media={campaign.media} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#2A2622' }}>{campaign.media}</span>
+                    {campaign.placement && <span style={{ fontSize: 11, color: '#7A7775', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {campaign.placement}</span>}
+                  </div>
+                  {entry.content && (
+                    <div style={{ fontSize: 13, color: pal.eventInk, lineHeight: 1.5 }}>{entry.content}</div>
+                  )}
+                  {entry.endDate && entry.endDate !== entry.date && (
+                    <div style={{ fontSize: 11, color: '#7A7775' }}>
+                      {fmtMD(entry.date)} – {fmtMD(entry.endDate)}
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Modals (reuse same modals as desktop) */}
+        {newCampaign && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(42,38,34,0.45)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setNewCampaign(null)}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: '#FFFAF3', borderRadius: '12px 12px 0 0', padding: '20px 20px 32px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 -4px 24px rgba(42,38,34,0.2)' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#D7CBBC', margin: '0 auto 20px' }} />
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#2A2622', marginBottom: 16 }}>新增排程項目</div>
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>類型 *</div>
+                <select value={newCampaign.type} onChange={(e) => setNewCampaign((p) => p ? { ...p, type: e.target.value } : null)}
+                  style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', background: '#fff', color: '#2A2622', outline: 'none' }}>
+                  {['製作', '新聞報導', '數位廣告', 'KOL', '輿論'].map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </label>
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>媒體 / 渠道 *</div>
+                <input type="text" value={newCampaign.media} onChange={(e) => setNewCampaign((p) => p ? { ...p, media: e.target.value } : null)}
+                  placeholder="例：Facebook / Instagram"
+                  style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <label>
+                  <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>版位</div>
+                  <input type="text" value={newCampaign.placement} onChange={(e) => setNewCampaign((p) => p ? { ...p, placement: e.target.value } : null)}
+                    style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+                </label>
+                <label>
+                  <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>分工</div>
+                  <input type="text" value={newCampaign.assignee} onChange={(e) => setNewCampaign((p) => p ? { ...p, assignee: e.target.value } : null)}
+                    placeholder="負責人"
+                    style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+                </label>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <label>
+                  <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>開始日期</div>
+                  <input type="date" value={newCampaign.startDate} onChange={(e) => { const s = e.target.value; setNewCampaign((p) => p ? { ...p, startDate: s, endDate: p.endDate < s ? s : p.endDate } : null) }}
+                    style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+                </label>
+                <label>
+                  <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>結束日期</div>
+                  <input type="date" value={newCampaign.endDate} min={newCampaign.startDate} onChange={(e) => setNewCampaign((p) => p ? { ...p, endDate: e.target.value } : null)}
+                    style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+                </label>
+              </div>
+              <label style={{ display: 'block', marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>內容說明</div>
+                <textarea value={newCampaign.content} onChange={(e) => setNewCampaign((p) => p ? { ...p, content: e.target.value } : null)} rows={3}
+                  style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', resize: 'none', outline: 'none', background: '#fff', color: '#2A2622', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              </label>
+              <button onClick={saveNewCampaign} disabled={saving || !newCampaign.media.trim()}
+                style={{ width: '100%', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 8, border: 'none', background: '#C00000', color: '#fff', cursor: (saving || !newCampaign.media.trim()) ? 'default' : 'pointer', opacity: (saving || !newCampaign.media.trim()) ? 0.6 : 1 }}>
+                {saving ? '新增中…' : '新增'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {editingCell && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(42,38,34,0.45)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setEditingCell(null)}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: '#FFFAF3', borderRadius: '12px 12px 0 0', padding: '20px 20px 32px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 -4px 24px rgba(42,38,34,0.2)' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#D7CBBC', margin: '0 auto 20px' }} />
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#2A2622', marginBottom: 4 }}>{editingCell.oldDate ? '編輯排程' : '新增排程'}</div>
+              {editingCell.label && <div style={{ fontSize: 13, color: '#7A7775', marginBottom: 16 }}>{editingCell.label}</div>}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                <label>
+                  <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>開始日期</div>
+                  <input type="date" value={editingCell.startDate} onChange={(e) => { const s = e.target.value; setEditingCell((p) => p ? { ...p, startDate: s, endDate: p.endDate < s ? s : p.endDate } : null) }}
+                    style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+                </label>
+                <label>
+                  <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>結束日期</div>
+                  <input type="date" value={editingCell.endDate} min={editingCell.startDate} onChange={(e) => setEditingCell((p) => p ? { ...p, endDate: e.target.value } : null)}
+                    style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+                </label>
+              </div>
+              <label style={{ display: 'block', marginBottom: 16 }}>
+                <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>內容說明</div>
+                <textarea autoFocus value={editingCell.content} onChange={(e) => setEditingCell((p) => p ? { ...p, content: e.target.value } : null)} rows={3}
+                  style={{ width: '100%', fontSize: 14, border: '1px solid #D7CBBC', borderRadius: 8, padding: '10px 12px', resize: 'none', outline: 'none', background: '#fff', color: '#2A2622', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              </label>
+              <div style={{ fontSize: 11, color: '#B8B3AD', marginBottom: 16 }}>清空內容並儲存可刪除此排程</div>
+              <button onClick={saveEdit} disabled={saving}
+                style={{ width: '100%', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 8, border: 'none', background: '#C00000', color: '#fff', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+                {saving ? '儲存中…' : '儲存'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (

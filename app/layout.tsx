@@ -15,13 +15,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-30 backdrop-blur-sm"
                 style={{ background: 'rgba(255,241,229,0.92)', borderBottom: '1px solid #E8DFD4' }}>
           <div className="topbar-rule" />
-          <div className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-baseline gap-3">
-              <span className="font-serif-tc text-[22px] font-bold tracking-tight" style={{ color: '#C00000' }}>
+          <div className="max-w-[1280px] mx-auto px-4 md:px-6 flex items-center justify-between" style={{ height: '3.5rem' }}>
+            <div className="flex items-baseline gap-2 flex-shrink-0">
+              <span className="font-serif-tc font-bold tracking-tight" style={{ fontSize: 'clamp(17px, 4vw, 22px)', color: '#C00000' }}>
                 復華投信
               </span>
-              <span style={{ color: '#B8B3AD' }}>/</span>
-              <span className="font-serif-tc text-[18px]" style={{ color: '#2A2622' }}>
+              <span className="hidden sm:inline" style={{ color: '#B8B3AD' }}>/</span>
+              <span className="font-serif-tc hidden sm:inline" style={{ fontSize: 17, color: '#2A2622' }}>
                 行銷排程系統
               </span>
             </div>
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
 
-        <main className="max-w-[1280px] mx-auto px-6 py-8">
+        <main className="max-w-[1280px] mx-auto px-4 md:px-6 py-5 md:py-8">
           {children}
         </main>
 
