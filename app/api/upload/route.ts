@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseETFSheet, getSheetNames } from '@/lib/excel-parser'
-import { saveScheduleData } from '@/lib/storage'
+import { saveScheduleData, archiveCurrentVersion } from '@/lib/storage'
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (!sheetName) {
       const sheets = getSheetNames(buffer)
       if (sheets.length === 1) {
-        // Only one sheet — parse and save in this same request (avoids a second upload)
+        await archiveCurrentVersion()
         const data = parseETFSheet(buffer, sheets[0])
         await saveScheduleData(data)
         return NextResponse.json({
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sheets })
     }
 
+    await archiveCurrentVersion()
     const data = parseETFSheet(buffer, sheetName)
     await saveScheduleData(data)
 

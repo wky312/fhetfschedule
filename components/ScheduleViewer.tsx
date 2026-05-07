@@ -199,6 +199,12 @@ export default function ScheduleViewer({
     content: string
   }
   const [editingCell, setEditingCell] = useState<EditingState | null>(null)
+
+  type NewCampaignState = {
+    type: string; media: string; placement: string; assignee: string
+    startDate: string; endDate: string; content: string
+  }
+  const [newCampaign, setNewCampaign] = useState<NewCampaignState | null>(null)
   const [saving, setSaving] = useState(false)
   const today = new Date().toISOString().slice(0, 10)
 
@@ -235,6 +241,40 @@ export default function ScheduleViewer({
     rowItems.push({ kind: 'campaign', campaign, key: campaign.id })
     prevGroup = g
   })
+
+  async function saveNewCampaign() {
+    if (!newCampaign) return
+    setSaving(true)
+    try {
+      const { type, media, placement, assignee, startDate, endDate, content } = newCampaign
+      const newEndDate = endDate !== startDate ? endDate : undefined
+      const res = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type, media, placement, assignee, budget: 0, vendor: '',
+          scheduleEntries: content.trim()
+            ? [{ date: startDate, ...(newEndDate ? { endDate: newEndDate } : {}), content }]
+            : [],
+        }),
+      })
+      const json = await res.json() as { success?: boolean; id?: string; error?: string }
+      if (json.success && json.id) {
+        setData((prev) => prev ? {
+          ...prev,
+          campaigns: [...prev.campaigns, {
+            id: json.id!, type, media, placement, budget: 0, vendor: '', assignee,
+            scheduleEntries: content.trim()
+              ? [{ date: startDate, ...(newEndDate ? { endDate: newEndDate } : {}), content }]
+              : [],
+          }],
+        } : prev)
+        setNewCampaign(null)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function saveEdit() {
     if (!editingCell) return
@@ -326,6 +366,13 @@ export default function ScheduleViewer({
             回到今日
           </button>
         )}
+
+        <button
+          onClick={() => setNewCampaign({ type: '數位廣告', media: '', placement: '', assignee: '', startDate: today, endDate: today, content: '' })}
+          style={{ fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 4, border: '1px solid #B08F6E', background: '#F8F1E6', color: '#5E4A36', cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          ＋ 新增排程項目
+        </button>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
           {data.lastUpdated && (
@@ -521,10 +568,8 @@ export default function ScheduleViewer({
                           <td
                             key={cell.date}
                             className={`day ${isTodayCell ? 'today-tint' : isWeekend ? 'weekend-tint' : ''}`}
-                            style={{ height: 60, cursor: adminPassword ? 'pointer' : 'default' }}
-                            onClick={() => adminPassword
-                              ? setEditingCell({ campaignId: campaign.id, label: rowLabel, oldDate: '', startDate: cell.date, endDate: cell.date, content: '' })
-                              : undefined}
+                            style={{ height: 60, cursor: 'pointer' }}
+                            onClick={() => setEditingCell({ campaignId: campaign.id, label: rowLabel, oldDate: '', startDate: cell.date, endDate: cell.date, content: '' })}
                           />
                         )
                       }
@@ -584,6 +629,96 @@ export default function ScheduleViewer({
           <span className="num">資料來源：行銷 Excel · v2026.05</span>
         </div>
       </div>
+
+      {/* ── New Campaign Modal ── */}
+      {newCampaign && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(42,38,34,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setNewCampaign(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#FFFAF3', border: '1px solid #D7CBBC', borderRadius: 8, padding: 24, width: '100%', maxWidth: 440, boxShadow: '0 8px 40px rgba(42,38,34,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#7A7775', marginBottom: 4 }}>新增排程項目</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#2A2622' }}>填寫媒體渠道資訊與排程時間</div>
+            </div>
+
+            {/* 類型 */}
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>類型 *</div>
+              <select
+                value={newCampaign.type}
+                onChange={(e) => setNewCampaign((p) => p ? { ...p, type: e.target.value } : null)}
+                style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '7px 8px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }}
+              >
+                {['製作', '新聞報導', '數位廣告', 'KOL', '輿論'].map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+
+            {/* 媒體渠道 */}
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>媒體 / 渠道 *</div>
+              <input
+                type="text"
+                value={newCampaign.media}
+                onChange={(e) => setNewCampaign((p) => p ? { ...p, media: e.target.value } : null)}
+                placeholder="例：Facebook / Instagram、LINE官方帳號"
+                style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '7px 8px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </label>
+
+            {/* 版位 & 分工 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+              <label>
+                <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>版位</div>
+                <input type="text" value={newCampaign.placement} onChange={(e) => setNewCampaign((p) => p ? { ...p, placement: e.target.value } : null)}
+                  style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '7px 8px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+              </label>
+              <label>
+                <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>分工</div>
+                <input type="text" value={newCampaign.assignee} onChange={(e) => setNewCampaign((p) => p ? { ...p, assignee: e.target.value } : null)}
+                  placeholder="負責人"
+                  style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '7px 8px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+              </label>
+            </div>
+
+            <div style={{ borderTop: '1px solid #E8DFD4', margin: '16px 0', paddingTop: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#7A7775', marginBottom: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>初始排程（可選）</div>
+
+              {/* 日期 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <label>
+                  <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>開始日期</div>
+                  <input type="date" value={newCampaign.startDate}
+                    onChange={(e) => { const s = e.target.value; setNewCampaign((p) => p ? { ...p, startDate: s, endDate: p.endDate < s ? s : p.endDate } : null) }}
+                    style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '7px 8px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+                </label>
+                <label>
+                  <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>結束日期</div>
+                  <input type="date" value={newCampaign.endDate} min={newCampaign.startDate}
+                    onChange={(e) => setNewCampaign((p) => p ? { ...p, endDate: e.target.value } : null)}
+                    style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '7px 8px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }} />
+                </label>
+              </div>
+
+              {/* 內容 */}
+              <label>
+                <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>內容說明</div>
+                <textarea value={newCampaign.content} onChange={(e) => setNewCampaign((p) => p ? { ...p, content: e.target.value } : null)}
+                  style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '8px 10px', resize: 'vertical', outline: 'none', background: '#fff', color: '#2A2622', fontFamily: 'inherit', minHeight: 64, boxSizing: 'border-box' }}
+                  rows={2} />
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setNewCampaign(null)} style={{ fontSize: 12, padding: '7px 14px', borderRadius: 4, border: '1px solid #D7CBBC', background: 'transparent', color: '#4D4D4F', cursor: 'pointer' }}>取消</button>
+              <button onClick={saveNewCampaign} disabled={saving || !newCampaign.media.trim()}
+                style={{ fontSize: 12, padding: '7px 18px', borderRadius: 4, border: 'none', background: '#C00000', color: '#fff', cursor: (saving || !newCampaign.media.trim()) ? 'default' : 'pointer', opacity: (saving || !newCampaign.media.trim()) ? 0.6 : 1, fontWeight: 600 }}>
+                {saving ? '新增中…' : '新增'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Edit Modal ── */}
       {editingCell && (

@@ -1,12 +1,16 @@
 import fs from 'fs/promises'
 import path from 'path'
-import type { ScheduleData } from './types'
+import type { Campaign, ScheduleData, VersionMeta } from './types'
 
 // On Vercel, process.cwd() is read-only; /tmp is the only writable dir.
 // Without Redis, data won't survive cold starts — configure Upstash for persistence.
 const DATA_FILE = process.env.VERCEL
   ? '/tmp/schedule.json'
   : path.join(process.cwd(), 'data', 'schedule.json')
+
+const VERSIONS_KEY = 'etf_schedule_versions'
+const VERSION_PREFIX = 'etf_schedule_v_'
+const MAX_VERSIONS = 10
 
 async function getRedis() {
   const url = process.env.UPSTASH_REDIS_REST_URL
@@ -39,6 +43,57 @@ export async function saveScheduleData(data: ScheduleData): Promise<void> {
   await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8')
 }
 
+// ── Version history (Redis only) ─────────────────────────────────────────────
+
+export async function archiveCurrentVersion(): Promise<void> {
+  const redis = await getRedis()
+  if (!redis) return
+
+  const current = await getScheduleData()
+  if (!current?.campaigns?.length) return
+
+  const id = Date.now().toString()
+  const meta: VersionMeta = {
+    id,
+    uploadedAt: new Date().toISOString(),
+    sourceFile: current.sourceFile,
+    campaignCount: current.campaigns.length,
+  }
+
+  const versions: VersionMeta[] = (await redis.get<VersionMeta[]>(VERSIONS_KEY)) ?? []
+  versions.unshift(meta)
+
+  const toKeep = versions.slice(0, MAX_VERSIONS)
+  const toDelete = versions.slice(MAX_VERSIONS)
+
+  await Promise.all([
+    redis.set(VERSION_PREFIX + id, current),
+    redis.set(VERSIONS_KEY, toKeep),
+    ...toDelete.map((v) => redis.del(VERSION_PREFIX + v.id)),
+  ])
+}
+
+export async function getVersionHistory(): Promise<VersionMeta[]> {
+  const redis = await getRedis()
+  if (!redis) return []
+  return (await redis.get<VersionMeta[]>(VERSIONS_KEY)) ?? []
+}
+
+export async function restoreVersion(id: string): Promise<boolean> {
+  const redis = await getRedis()
+  if (!redis) return false
+
+  const versionData = await redis.get<ScheduleData>(VERSION_PREFIX + id)
+  if (!versionData) return false
+
+  // Archive current before restoring so restore itself is reversible
+  await archiveCurrentVersion()
+  await redis.set('etf_schedule', versionData)
+  return true
+}
+
+// ── Schedule entry edits ──────────────────────────────────────────────────────
+
 export async function updateScheduleEntry(
   campaignId: string,
   oldDate: string,
@@ -67,4 +122,17 @@ export async function updateScheduleEntry(
   data.lastUpdated = new Date().toISOString()
   await saveScheduleData(data)
   return true
+}
+
+// ── Add new campaign ──────────────────────────────────────────────────────────
+
+export async function addCampaign(campaign: Campaign): Promise<string | null> {
+  const data = await getScheduleData()
+  if (!data) return null
+
+  const id = `manual-${Date.now()}`
+  data.campaigns.push({ ...campaign, id })
+  data.lastUpdated = new Date().toISOString()
+  await saveScheduleData(data)
+  return id
 }

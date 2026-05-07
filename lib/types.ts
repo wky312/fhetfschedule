@@ -20,3 +20,10 @@ export type ScheduleData = {
   sourceFile: string
   campaigns: Campaign[]
 }
+
+export type VersionMeta = {
+  id: string
+  uploadedAt: string
+  sourceFile: string
+  campaignCount: number
+}
