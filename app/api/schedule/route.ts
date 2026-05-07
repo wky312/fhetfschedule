@@ -16,14 +16,20 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: '密碼錯誤' }, { status: 401 })
   }
 
-  const body = await req.json() as { campaignId: string; date: string; content: string }
-  const { campaignId, date, content } = body
+  const body = await req.json() as {
+    campaignId: string
+    oldDate: string    // original start date (empty string = new entry)
+    date: string       // new start date
+    endDate?: string   // new end date (omit or same as date = single-day)
+    content: string
+  }
+  const { campaignId, oldDate, date, endDate, content } = body
 
   if (!campaignId || !date) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 })
   }
 
-  const ok = await updateScheduleEntry(campaignId, date, content ?? '')
+  const ok = await updateScheduleEntry(campaignId, oldDate ?? '', date, endDate, content ?? '')
   if (!ok) {
     return NextResponse.json({ error: '找不到對應的活動' }, { status: 404 })
   }

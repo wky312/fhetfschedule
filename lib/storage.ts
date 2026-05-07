@@ -41,7 +41,9 @@ export async function saveScheduleData(data: ScheduleData): Promise<void> {
 
 export async function updateScheduleEntry(
   campaignId: string,
+  oldDate: string,
   date: string,
+  endDate: string | undefined,
   content: string
 ): Promise<boolean> {
   const data = await getScheduleData()
@@ -50,11 +52,16 @@ export async function updateScheduleEntry(
   const campaign = data.campaigns.find((c) => c.id === campaignId)
   if (!campaign) return false
 
-  const existing = campaign.scheduleEntries.find((e) => e.date === date)
-  if (existing) {
-    existing.content = content
-  } else if (content.trim()) {
-    campaign.scheduleEntries.push({ date, content })
+  // Remove the old entry (whether we're updating it or deleting it)
+  campaign.scheduleEntries = campaign.scheduleEntries.filter((e) => e.date !== oldDate)
+
+  // Add the updated entry if content is non-empty
+  if (content.trim()) {
+    campaign.scheduleEntries.push({
+      date,
+      ...(endDate && endDate !== date ? { endDate } : {}),
+      content,
+    })
   }
 
   data.lastUpdated = new Date().toISOString()

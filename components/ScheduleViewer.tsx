@@ -190,7 +190,15 @@ export default function ScheduleViewer({
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>(defaultView)
   const [weekOffset, setWeekOffset] = useState(0)
-  const [editingCell, setEditingCell] = useState<{ campaignId: string; date: string; content: string } | null>(null)
+  type EditingState = {
+    campaignId: string
+    label: string    // for modal title
+    oldDate: string  // '' = new entry, otherwise original start date
+    startDate: string
+    endDate: string
+    content: string
+  }
+  const [editingCell, setEditingCell] = useState<EditingState | null>(null)
   const [saving, setSaving] = useState(false)
   const today = new Date().toISOString().slice(0, 10)
 
@@ -231,19 +239,23 @@ export default function ScheduleViewer({
   async function saveEdit() {
     if (!editingCell) return
     setSaving(true)
+    const { campaignId, oldDate, startDate, endDate, content } = editingCell
+    const newEndDate = endDate !== startDate ? endDate : undefined
     await fetch('/api/schedule', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...(adminPassword ? { 'x-admin-password': adminPassword } : {}) },
-      body: JSON.stringify({ campaignId: editingCell.campaignId, date: editingCell.date, content: editingCell.content }),
+      body: JSON.stringify({ campaignId, oldDate, date: startDate, endDate: newEndDate, content }),
     })
     setData((prev) => {
       if (!prev) return prev
       return {
         ...prev,
         campaigns: prev.campaigns.map((c) => {
-          if (c.id !== editingCell.campaignId) return c
-          const others = c.scheduleEntries.filter((e) => e.date !== editingCell.date)
-          const updated = editingCell.content.trim() ? [...others, { date: editingCell.date, content: editingCell.content }] : others
+          if (c.id !== campaignId) return c
+          const others = c.scheduleEntries.filter((e) => e.date !== oldDate)
+          const updated = content.trim()
+            ? [...others, { date: startDate, ...(newEndDate ? { endDate: newEndDate } : {}), content }]
+            : others
           return { ...c, scheduleEntries: updated }
         }),
       }
@@ -454,6 +466,7 @@ export default function ScheduleViewer({
                 const layout = computeRowLayout(campaign, visibleDays)
                 const pal = getPalette(campaign.type)
                 const hasActivity = layout.some((c) => c?.entry)
+                const rowLabel = `${campaign.media} · ${campaign.type.replace(/\s*\([^)]*\)/, '').trim()}`
 
                 return (
                   <tr
@@ -502,7 +515,6 @@ export default function ScheduleViewer({
                       const d = new Date(cell.date + 'T00:00:00')
                       const isWeekend = d.getDay() === 0 || d.getDay() === 6
                       const isTodayCell = cell.date === today
-                      const isEditing = editingCell?.campaignId === campaign.id && editingCell.date === cell.date
 
                       if (!cell.entry) {
                         return (
@@ -510,7 +522,9 @@ export default function ScheduleViewer({
                             key={cell.date}
                             className={`day ${isTodayCell ? 'today-tint' : isWeekend ? 'weekend-tint' : ''}`}
                             style={{ height: 60, cursor: adminPassword ? 'pointer' : 'default' }}
-                            onClick={() => adminPassword ? setEditingCell({ campaignId: campaign.id, date: cell.date, content: '' }) : undefined}
+                            onClick={() => adminPassword
+                              ? setEditingCell({ campaignId: campaign.id, label: rowLabel, oldDate: '', startDate: cell.date, endDate: cell.date, content: '' })
+                              : undefined}
                           />
                         )
                       }
@@ -520,47 +534,29 @@ export default function ScheduleViewer({
                           key={cell.date}
                           colSpan={cell.colSpan}
                           className="day"
-                          style={{ padding: 6, verticalAlign: 'middle' }}
-                          onClick={() => !isEditing && setEditingCell({ campaignId: campaign.id, date: cell.date, content: cell.entry!.content })}
+                          style={{ padding: 6, verticalAlign: 'middle', cursor: 'pointer' }}
+                          onClick={() => setEditingCell({
+                            campaignId: campaign.id,
+                            label: rowLabel,
+                            oldDate: cell.entry!.date,
+                            startDate: cell.entry!.date,
+                            endDate: cell.entry!.endDate ?? cell.entry!.date,
+                            content: cell.entry!.content,
+                          })}
                         >
-                          {isEditing ? (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <textarea
-                                autoFocus
-                                value={editingCell!.content}
-                                onChange={(e) => setEditingCell((p) => p ? { ...p, content: e.target.value } : null)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() }
-                                  if (e.key === 'Escape') setEditingCell(null)
-                                }}
-                                style={{ width: '100%', fontSize: 12, border: '1px solid #B08F6E', borderRadius: 4, padding: '4px 6px', resize: 'none', outline: 'none', background: '#FFFAF3', color: '#2A2622', fontFamily: 'inherit' }}
-                                rows={2}
-                              />
-                              <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                                <button onClick={saveEdit} disabled={saving} style={{ fontSize: 10.5, padding: '3px 8px', background: '#C00000', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
-                                  {saving ? '…' : '存'}
-                                </button>
-                                <button onClick={() => setEditingCell(null)} style={{ fontSize: 10.5, padding: '3px 8px', background: '#F1E8DD', color: '#2A2622', border: '1px solid #D7CBBC', borderRadius: 3, cursor: 'pointer' }}>
-                                  取消
-                                </button>
-                              </div>
+                          <div style={{
+                            borderLeft: `3px solid ${pal.eventAccent}`,
+                            background: pal.eventBg,
+                            borderRadius: 4,
+                            padding: '8px 10px',
+                            minHeight: 38,
+                            display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                            boxShadow: '0 1px 0 rgba(42,38,34,0.04)',
+                          }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: pal.eventInk, lineHeight: 1.3, whiteSpace: 'pre-line' }}>
+                              {cell.entry.content}
                             </div>
-                          ) : (
-                            <div style={{
-                              borderLeft: `3px solid ${pal.eventAccent}`,
-                              background: pal.eventBg,
-                              borderRadius: 4,
-                              padding: '8px 10px',
-                              minHeight: 38,
-                              display: 'flex', flexDirection: 'column', justifyContent: 'center',
-                              boxShadow: '0 1px 0 rgba(42,38,34,0.04)',
-                              cursor: 'default',
-                            }}>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: pal.eventInk, lineHeight: 1.3, whiteSpace: 'pre-line' }}>
-                                {cell.entry.content}
-                              </div>
-                            </div>
-                          )}
+                          </div>
                         </td>
                       )
                     })}
@@ -583,11 +579,92 @@ export default function ScheduleViewer({
           ))}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span>點擊格子可編輯（需密碼驗證）</span>
+          <span>點擊格子可編輯</span>
           <span style={{ color: '#B8B3AD' }}>·</span>
           <span className="num">資料來源：行銷 Excel · v2026.05</span>
         </div>
       </div>
+
+      {/* ── Edit Modal ── */}
+      {editingCell && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(42,38,34,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setEditingCell(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#FFFAF3', border: '1px solid #D7CBBC', borderRadius: 8, padding: 24, width: '100%', maxWidth: 400, boxShadow: '0 8px 40px rgba(42,38,34,0.25)' }}
+          >
+            {/* Modal header */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#7A7775', marginBottom: 4 }}>
+                {editingCell.oldDate ? '編輯排程' : '新增排程'}
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#2A2622' }}>{editingCell.label}</div>
+            </div>
+
+            {/* Date range */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+              <label>
+                <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>開始日期</div>
+                <input
+                  type="date"
+                  value={editingCell.startDate}
+                  onChange={(e) => {
+                    const s = e.target.value
+                    setEditingCell((p) => p ? { ...p, startDate: s, endDate: p.endDate < s ? s : p.endDate } : null)
+                  }}
+                  style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '7px 8px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </label>
+              <label>
+                <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>結束日期</div>
+                <input
+                  type="date"
+                  value={editingCell.endDate}
+                  min={editingCell.startDate}
+                  onChange={(e) => setEditingCell((p) => p ? { ...p, endDate: e.target.value } : null)}
+                  style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '7px 8px', background: '#fff', color: '#2A2622', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </label>
+            </div>
+
+            {/* Content */}
+            <label>
+              <div style={{ fontSize: 11, color: '#7A7775', marginBottom: 4 }}>內容說明</div>
+              <textarea
+                autoFocus
+                value={editingCell.content}
+                onChange={(e) => setEditingCell((p) => p ? { ...p, content: e.target.value } : null)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() }
+                  if (e.key === 'Escape') setEditingCell(null)
+                }}
+                style={{ width: '100%', fontSize: 13, border: '1px solid #D7CBBC', borderRadius: 4, padding: '8px 10px', resize: 'vertical', outline: 'none', background: '#fff', color: '#2A2622', fontFamily: 'inherit', minHeight: 80, boxSizing: 'border-box' }}
+                rows={3}
+              />
+            </label>
+            <div style={{ fontSize: 10.5, color: '#B8B3AD', marginTop: 5 }}>Enter 儲存 · Esc 關閉 · 清空內容儲存可刪除此項目</div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 18, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setEditingCell(null)}
+                style={{ fontSize: 12, padding: '7px 14px', borderRadius: 4, border: '1px solid #D7CBBC', background: 'transparent', color: '#4D4D4F', cursor: 'pointer' }}
+              >
+                取消
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={saving}
+                style={{ fontSize: 12, padding: '7px 18px', borderRadius: 4, border: 'none', background: '#C00000', color: '#fff', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, fontWeight: 600 }}
+              >
+                {saving ? '儲存中…' : '儲存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
